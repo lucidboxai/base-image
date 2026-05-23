@@ -1,0 +1,70 @@
+name: PR Build Check
+
+# Lightweight CI for PRs: build the image but DO NOT publish.
+# Catches Dockerfile / build-script regressions on every PR without
+# touching the GHCR registry.
+#
+# Triggers:
+#   - pull_request to main
+#   - manual workflow_dispatch (for ad-hoc validation against any branch)
+#
+# Builds only the NVIDIA cudnn-runtime variant — the production target
+# per comfyui/COMPATIBILITY.md. CPU and AMD variants are out of scope here
+# (they would significantly extend PR feedback time and they share the
+# same Dockerfile / build scripts as nvidia).
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'build/**'
+      - '.github/workflows/pr-build-check.yml'
+  workflow_dispatch:
+
+env:
+  UBUNTU_VERSION: "24.04"
+  CUDA_VARIANT: "12.6.3-cudnn-runtime"
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+
+permissions:
+  contents: read
+
+jobs:
+  nvidia-build-check:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Free Space
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Permissions fixes
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          target="${HOME}/work/${REPO_NAME}/${REPO_NAME}/build/COPY*"
+          chmod -R ug+rwX ${target}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: build
+          build-args: |
+            IMAGE_BASE=nvidia/cuda:${{ env.CUDA_VARIANT }}-ubuntu${{ env.UBUNTU_VERSION }}
+            XPU_TARGET=NVIDIA_GPU
+            CUDA_STRING=${{ env.CUDA_VARIANT }}
+          push: false
+          provenance: false
+          tags: lucidboxai-base-image:pr-build-check
