@@ -28,15 +28,16 @@ on:
 jobs:
   delete-old-packages:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       -
         run: |
           echo "PACKAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
           echo "OWNER=orgs/${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
       -
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
           script: |
             const delete_age = (function() {
                 switch ("${{ github.event.inputs.age }}") {

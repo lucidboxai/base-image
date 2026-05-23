@@ -13,15 +13,16 @@ on:
 jobs:
   delete-untagged:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       -
         run: |
           echo "PACKAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
           echo "OWNER=orgs/${GITHUB_REPOSITORY_OWNER,,}" >> ${GITHUB_ENV}
       -
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
           script: |
             const response = await github.request("GET /${{ env.OWNER }}/packages/container/${{ github.event.repository.name  }}/versions",
               { per_page: ${{ env.PER_PAGE }}
