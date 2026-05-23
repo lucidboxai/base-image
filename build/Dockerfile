@@ -7,10 +7,16 @@ ENV PATH=/opt/go/bin:$PATH
 ENV GOROOT=/opt/go
 RUN apt-get update && \
     apt-get install -y wget && \
+    # Go — verify against Google-published .sha256 alongside the tarball
     wget https://dl.google.com/go/go1.26.3.linux-amd64.tar.gz && \
+    wget -q -O go1.26.3.linux-amd64.tar.gz.sha256 https://dl.google.com/go/go1.26.3.linux-amd64.tar.gz.sha256 && \
+    echo "$(cat go1.26.3.linux-amd64.tar.gz.sha256)  go1.26.3.linux-amd64.tar.gz" | sha256sum -c - && \
     tar -xf go1.26.3.linux-amd64.tar.gz && \
     mv ./go /opt && \
+    # xcaddy — verify against the release's checksums.txt (SHA-512 despite the generic filename)
     wget https://github.com/caddyserver/xcaddy/releases/download/v0.4.5/xcaddy_0.4.5_linux_amd64.deb && \
+    wget -q -O xcaddy_0.4.5_checksums.txt https://github.com/caddyserver/xcaddy/releases/download/v0.4.5/xcaddy_0.4.5_checksums.txt && \
+    grep " xcaddy_0.4.5_linux_amd64.deb$" xcaddy_0.4.5_checksums.txt | sha512sum -c - && \
     apt-get install ./xcaddy_0.4.5_linux_amd64.deb && \
     xcaddy build \
         --with github.com/caddyserver/caddy/v2=github.com/ai-dock/caddy/v2@httpredirect \

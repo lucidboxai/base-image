@@ -100,8 +100,16 @@ python3 -m venv "$SERVICEPORTAL_VENV"
 "$SERVICEPORTAL_VENV_PIP" install \
     --no-cache-dir -r /opt/ai-dock/fastapi/requirements.txt
 
-# Get Cloudflare daemon
-wget -c -O cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+# Get Cloudflare daemon — pinned to a verified version.
+# Cloudflare does not publish a checksums file in their GitHub releases, so
+# the SHA256 is hardcoded here. To bump CLOUDFLARED_VERSION, compute the new
+# hash with:
+#   curl -fsSL https://github.com/cloudflare/cloudflared/releases/download/<VER>/cloudflared-linux-amd64.deb | sha256sum
+# then update both CLOUDFLARED_VERSION and CLOUDFLARED_SHA256 below.
+CLOUDFLARED_VERSION="2026.5.0"
+CLOUDFLARED_SHA256="0173a478774c635e577ef1eaa5a49af88d09d2d69b4a3e46f7033598f68f6521"
+wget -c -O cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64.deb"
+echo "${CLOUDFLARED_SHA256}  cloudflared.deb" | sha256sum -c -
 dpkg -i cloudflared.deb
 rm cloudflared.deb
 
@@ -133,8 +141,24 @@ export SYNCTHING_VERSION="$(curl -fsSL "https://api.github.com/repos/syncthing/s
 env-store SYNCTHING_VERSION
 
 SYNCTHING_URL="https://github.com/syncthing/syncthing/releases/download/v${SYNCTHING_VERSION}/syncthing-linux-amd64-v${SYNCTHING_VERSION}.tar.gz"
+SYNCTHING_SUMS_URL="https://github.com/syncthing/syncthing/releases/download/v${SYNCTHING_VERSION}/sha256sum.txt.asc"
 mkdir /opt/syncthing/
-wget -O /opt/syncthing.tar.gz $SYNCTHING_URL && (cd /opt && tar -zxf syncthing.tar.gz -C /opt/syncthing/ --strip-components=1) && rm -f /opt/syncthing.tar.gz
+wget -O /opt/syncthing.tar.gz "$SYNCTHING_URL"
+# Verify against sha256sum.txt.asc in the same release. The file is
+# PGP-clearsigned, but grep for the specific filename only matches the hash
+# line (not the PGP armor blocks). We don't verify the signature itself —
+# pinning syncthing's signing key is more maintenance than the threat model
+# warrants for a developer image.
+SYNCTHING_EXPECTED_SHA="$(curl -fsSL "$SYNCTHING_SUMS_URL" \
+    | grep "syncthing-linux-amd64-v${SYNCTHING_VERSION}.tar.gz$" \
+    | awk '{print $1}')"
+if [[ -z "$SYNCTHING_EXPECTED_SHA" ]]; then
+    echo "Failed to extract syncthing SHA256 for v${SYNCTHING_VERSION}" >&2
+    exit 1
+fi
+echo "${SYNCTHING_EXPECTED_SHA}  /opt/syncthing.tar.gz" | sha256sum -c -
+(cd /opt && tar -zxf syncthing.tar.gz -C /opt/syncthing/ --strip-components=1)
+rm -f /opt/syncthing.tar.gz
 if [[ -f /opt/syncthing/syncthing ]]; then
     ln -s /opt/syncthing/syncthing /opt/ai-dock/bin/syncthing
 else
