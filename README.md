@@ -1,39 +1,61 @@
-[![Docker Build](https://github.com/ai-dock/base-image/actions/workflows/docker-build.yml/badge.svg)](https://github.com/ai-dock/base-image/actions/workflows/docker-build.yml)
+# lucidboxai/base-image
 
-# Base Image
+[![PR Build Check](https://github.com/lucidboxai/base-image/actions/workflows/pr-build-check.yml/badge.svg?branch=main)](https://github.com/lucidboxai/base-image/actions/workflows/pr-build-check.yml)
 
-All ai-dock images are extended from this base image.
+Base image for the **lucidboxai ai-dock stack** — a maintained fork of [ai-dock/base-image](https://github.com/ai-dock/base-image) modernized for current cloud GPU services. All lucidboxai images (`lucidboxai/python`, `lucidboxai/comfyui`) extend from this image.
 
-This file should form the basis for the README.md for all extended images, with nothing but this introduction removed and additional features documented as required.
+## What this fork changes vs. upstream
+
+The lucidboxai modernization (vs. dormant upstream as of late 2024):
+
+| Component | Upstream `ai-dock` | `lucidboxai` |
+|---|---|---|
+| Ubuntu | 22.04 | **24.04** |
+| CUDA base | 11.8 / 12.1 | **12.6.3-cudnn-runtime** |
+| Python (in `lucidboxai/python`) | 3.10 | **3.12** (native, no PPA) |
+| Build toolchain | Go 1.22, xcaddy 0.4.2, Node 22.2 | Go 1.26.3, xcaddy 0.4.5, Node 22.22.3 |
+| FastAPI / uvicorn (serviceportal) | hard-pinned `==0.103` / `==0.23` | floor-pinned `>=0.115` / `>=0.34` |
+
+A range of Ubuntu 24.04-specific fixes are folded in: native `unminimize`, `libgl1`/`plocate` (renamed packages), default `ubuntu` user removed to free UID 1000 for the runtime user, and a few drops (e.g. `rar`) for packages no longer in default 24.04 repos.
+
+For the full pinned stack and the rules around bumping it, see [`lucidboxai/comfyui/COMPATIBILITY.md`](https://github.com/lucidboxai/comfyui/blob/main/COMPATIBILITY.md) — that file is the canonical compatibility reference for the whole lucidboxai stack.
 
 ## Documentation
 
-All AI-Dock containers share a common base which is designed to make running on container-first cloud services such as [vast.ai](https://link.ai-dock.org/vast.ai) as straightforward and user friendly as possible.
+Container behavior and environment variables shared with upstream are still documented in the [ai-dock base wiki](https://github.com/ai-dock/base-image/wiki). lucidboxai-specific deviations from those docs are tracked in this repo's commit history.
 
-Common features and options are documented in the [base wiki](https://github.com/ai-dock/base-image/wiki) but any additional features unique to this image will be detailed below.
+## Published images
 
-## Pre-built Images
+Built via the `Docker Build` workflow (manual `workflow_dispatch`, ~18–20 min) and pushed to GHCR:
 
-Docker images are built automatically through a GitHub Actions workflow and hosted at the GitHub Container Registry.
+```
+ghcr.io/lucidboxai/base-image:v2-cuda-12.6.3-cudnn-runtime-24.04
+ghcr.io/lucidboxai/base-image:v2-cuda-12.6.3-base-24.04
+ghcr.io/lucidboxai/base-image:v2-cuda-12.6.3-cudnn-devel-24.04
+```
 
-#### Version Tags
+Browse all published tags at https://github.com/lucidboxai/base-image/pkgs/container/base-image.
 
-There is no `latest` tag.
-Tags follow these patterns:
+> ROCm and CPU build variants are kept in the workflow matrix for parity with upstream but are not the production target; the lucidboxai stack focuses on the NVIDIA cudnn-runtime variant.
 
-##### _CUDA_
-`:v2-cuda-[x.x.x]{-cudnn[x]}-[base|runtime|devel]-[ubuntu-version]`
+## Building locally
 
-##### _ROCm_
-`:v2-rocm-[x.x.x]-[core|runtime|devel]-[ubuntu-version]`
+```sh
+git clone https://github.com/lucidboxai/base-image.git
+cd base-image
+docker compose build
+```
 
-ROCm builds are experimental. Please give feedback.
+The image base, CUDA string, and tag are all set via `docker-compose.yaml` build args — override via env vars if you need a different variant.
 
-##### _CPU_
-`:v2-cpu-[ubuntu-version]`
+## Publishing (maintainers)
 
-Browse [here](https://github.com/ai-dock/base-image/pkgs/container/base-image) for an image suitable for your target environment.
+```sh
+gh workflow run docker-build.yml --repo lucidboxai/base-image
+```
 
----
+Then verify the new tag exists on GHCR. After base-image is republished, the build order for cascading changes through the stack is documented in `comfyui/COMPATIBILITY.md`: **base-image → python → comfyui**.
 
-_The author ([@robballantyne](https://github.com/robballantyne)) may be compensated if you sign up to services linked in this document. Testing multiple variants of GPU images in many different environments is both costly and time-consuming; This helps to offset costs_
+## Credits
+
+This is a fork of [ai-dock/base-image](https://github.com/ai-dock/base-image) by [@robballantyne](https://github.com/robballantyne). Their original architecture, build scripts, Caddy + supervisor setup, and ai-dock common-base concept are the foundation this image builds on. Bug fixes and improvements that aren't fork-specific should ideally flow back upstream if/when ai-dock becomes active again.
