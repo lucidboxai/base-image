@@ -16,4 +16,7 @@ if [[ $code -ne 0 ]]; then
 fi
 
 printf "export %s=\'%s\'\n" "${key}" "${value}" >> /opt/ai-dock/etc/environment.sh
-printf "Stored environment variable '%s': %s\n" "$key" "$value"
+# Name only: init stores EVERY variable in the environment, so echoing values
+# puts API tokens and passwords into the container log. The name alone is what
+# makes this line useful for debugging.
+printf "Stored environment variable '%s'\n" "$key"
