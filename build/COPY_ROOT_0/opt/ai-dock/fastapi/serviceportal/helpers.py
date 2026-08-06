@@ -1,8 +1,15 @@
 import os
 import subprocess
 import json
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from xmlrpc.client import ServerProxy
+
+# supervisord's XML-RPC interface. It listens on loopback and now requires the
+# same credentials as the unix socket, so the URL carries them.
+SUPERVISOR_RPC_URL = "http://{}:{}@localhost:9001/RPC2".format(
+    quote(os.environ.get("SUPERVISOR_RPC_USER", "ai-dock"), safe=""),
+    quote(os.environ.get("SUPERVISOR_RPC_PASSWORD", "ai-dock"), safe=""),
+)
 
 def get_service_files():
     dir = "/run/http_ports/"
@@ -85,19 +92,19 @@ async def log_reader(n=250) -> list:
         return log_lines
         
 def get_all_processes():
-    with ServerProxy('http://localhost:9001/RPC2') as server:
+    with ServerProxy(SUPERVISOR_RPC_URL) as server:
         return server.supervisor.getAllProcessInfo()
     
 def get_single_process(name):
-    with ServerProxy('http://localhost:9001/RPC2') as server:
+    with ServerProxy(SUPERVISOR_RPC_URL) as server:
         return server.supervisor.getProcessInfo(name)
     
 def stop_process(name):
-    with ServerProxy('http://localhost:9001/RPC2') as server:
+    with ServerProxy(SUPERVISOR_RPC_URL) as server:
         return server.supervisor.stopProcess(name)
     
 def start_process(name):
-    with ServerProxy('http://localhost:9001/RPC2') as server:
+    with ServerProxy(SUPERVISOR_RPC_URL) as server:
         return server.supervisor.startProcess(name)
     
 def restart_process(name):

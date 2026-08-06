@@ -136,7 +136,12 @@ init_set_web_config() {
       export WEB_PASSWORD="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)"
   fi
   
-  export WEB_PASSWORD_B64="$(caddy hash-password -p $WEB_PASSWORD)"
+  # Caddy compares this against a literal `Authorization: Basic <value>` header,
+  # so it must be base64(user:password) — what a browser actually sends. It was
+  # a bcrypt hash here and base64 in set-web-credentials.sh, so HTTP Basic and
+  # the ?token= pre-auth URL only worked after set-web-credentials had run.
+  # -w 0: a long user:password would otherwise wrap and embed a newline.
+  export WEB_PASSWORD_B64="$(printf "%s:%s" "$WEB_USER" "$WEB_PASSWORD" | base64 -w 0)"
   
   if [[ -z $WEB_TOKEN ]]; then
       export WEB_TOKEN="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
@@ -391,6 +396,13 @@ function init_source_preflight_scripts() {
 function init_write_environment() {
     # Ensure all variables available for interactive sessions
     sed -i '7,$d' /opt/ai-dock/etc/environment.sh
+    # Tightened BEFORE the loop below appends secrets. Default umask leaves this
+    # world-readable, and it holds every variable in the environment in plain
+    # text. Group read is required: services that source it (serviceportal,
+    # syncthing, cloudflared, quicktunnel, storagemonitor) run as $USER_NAME,
+    # which is a member of ai-dock.
+    chown root:ai-dock /opt/ai-dock/etc/environment.sh 2>/dev/null || true
+    chmod 640 /opt/ai-dock/etc/environment.sh
     while IFS='=' read -r -d '' key val; do
         if [[  $key != "HOME" ]]; then
             env-store "$key"

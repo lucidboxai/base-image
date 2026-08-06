@@ -36,8 +36,7 @@ async def get(request: Request):
 
 @app.get("/login")
 async def get(request: Request):
-    return templates.TemplateResponse("login.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "login.html", {
         "context": {}
         }
     )
@@ -49,8 +48,10 @@ async def post(request: Request):
     password = urllib.parse.unquote(form['password'])
     response = RedirectResponse(url="/", status_code=303)
     if user == os.environ.get('WEB_USER') and password == os.environ.get('WEB_PASSWORD'):
-        response.set_cookie(key=os.environ.get('CADDY_AUTH_COOKIE_NAME'), 
-            value=os.environ.get('WEB_PASSWORD_B64'),
+        # Session value is the opaque WEB_TOKEN, never WEB_PASSWORD_B64 —
+        # the latter is base64(user:password), i.e. reversible to the password.
+        response.set_cookie(key=os.environ.get('CADDY_AUTH_COOKIE_NAME'),
+            value=os.environ.get('WEB_TOKEN'),
             path="/",
             max_age=604800,
             httponly=True,
@@ -60,16 +61,14 @@ async def post(request: Request):
         
 @app.post("/ajax/index")
 async def post(request: Request):
-    return templates.TemplateResponse("partials/index/ajax.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "partials/index/ajax.html", {
         "context": get_index_context(request)
         }
     )
 
 def load_index(request: Request, message: str = "", status_code: int = 200):
     context = get_index_context(request, message)
-    return templates.TemplateResponse("index.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "index.html", {
         "context": context,
         "status": status_code
         }
@@ -108,8 +107,7 @@ async def post(request: Request):
     port = urllib.parse.unquote(form['port'])
     path = urllib.parse.unquote(form['path'])
     url = helpers.get_cfnt_url(port, path)
-    return templates.TemplateResponse("partials/index/cfnt_link.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/index/cfnt_link.html", {
         "context": {"url":url, "port":port}
         }
     )
@@ -134,8 +132,7 @@ async def post(request: Request):
     port = urllib.parse.unquote(form['port'])
     path = urllib.parse.unquote(form['path'])
     url = helpers.get_cfqt_url(port, path)
-    return templates.TemplateResponse("partials/index/cfqt_link.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/index/cfqt_link.html", {
         "context": {"url":url, "port":port}
         }
     )
@@ -160,24 +157,21 @@ async def post(request: Request):
     port = urllib.parse.unquote(form['port'])
     path = urllib.parse.unquote(form['path'])
     url = helpers.get_direct_url(port, path)
-    return templates.TemplateResponse("partials/index/direct_link.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/index/direct_link.html", {
         "context": {"url":url, "port":port}
         }
     )
 
 @app.get("/logs")
 async def get(request: Request):
-    return templates.TemplateResponse("logs.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "logs.html", {
         "context": get_logs_context()
         }
     )
     
 @app.post("/ajax/logs")
 async def post(request: Request):
-    return templates.TemplateResponse("partials/logs/ajax.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/logs/ajax.html", {
         "context": get_logs_context()
         }
     )
@@ -212,16 +206,14 @@ async def websocket_endpoint_log(websocket: WebSocket) -> None:
         
 @app.get("/processes")
 async def get(request: Request):
-    return templates.TemplateResponse("processes.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "processes.html", {
         "context": get_processes_context()
         }
     )
 
 @app.post("/ajax/processes")
 async def post(request: Request):
-    return templates.TemplateResponse("partials/processes/ajax.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/processes/ajax.html", {
         "context": get_processes_context()
         }
     )
@@ -231,8 +223,7 @@ async def post(request: Request):
     form = await request.form()
     name = urllib.parse.unquote(form['process'])
     helpers.stop_process(name)
-    return templates.TemplateResponse("partials/processes/row.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/processes/row.html", {
         "context": get_process_context(name)
         }
     )
@@ -242,8 +233,7 @@ async def post(request: Request):
     form = await request.form()
     name = urllib.parse.unquote(form['process'])
     helpers.start_process(name)
-    return templates.TemplateResponse("partials/processes/row.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/processes/row.html", {
         "context": get_process_context(name)
         }
     )
@@ -253,8 +243,7 @@ async def post(request: Request):
     form = await request.form()
     name = urllib.parse.unquote(form['process'])
     helpers.restart_process(name)
-    return templates.TemplateResponse("partials/processes/row.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "partials/processes/row.html", {
         "context": get_process_context(name)
         }
     )
