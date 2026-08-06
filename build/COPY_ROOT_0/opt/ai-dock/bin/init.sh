@@ -136,7 +136,12 @@ init_set_web_config() {
       export WEB_PASSWORD="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)"
   fi
   
-  export WEB_PASSWORD_B64="$(caddy hash-password -p $WEB_PASSWORD)"
+  # Caddy compares this against a literal `Authorization: Basic <value>` header,
+  # so it must be base64(user:password) — what a browser actually sends. It was
+  # a bcrypt hash here and base64 in set-web-credentials.sh, so HTTP Basic and
+  # the ?token= pre-auth URL only worked after set-web-credentials had run.
+  # -w 0: a long user:password would otherwise wrap and embed a newline.
+  export WEB_PASSWORD_B64="$(printf "%s:%s" "$WEB_USER" "$WEB_PASSWORD" | base64 -w 0)"
   
   if [[ -z $WEB_TOKEN ]]; then
       export WEB_TOKEN="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"

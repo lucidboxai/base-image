@@ -48,8 +48,10 @@ async def post(request: Request):
     password = urllib.parse.unquote(form['password'])
     response = RedirectResponse(url="/", status_code=303)
     if user == os.environ.get('WEB_USER') and password == os.environ.get('WEB_PASSWORD'):
-        response.set_cookie(key=os.environ.get('CADDY_AUTH_COOKIE_NAME'), 
-            value=os.environ.get('WEB_PASSWORD_B64'),
+        # Session value is the opaque WEB_TOKEN, never WEB_PASSWORD_B64 —
+        # the latter is base64(user:password), i.e. reversible to the password.
+        response.set_cookie(key=os.environ.get('CADDY_AUTH_COOKIE_NAME'),
+            value=os.environ.get('WEB_TOKEN'),
             path="/",
             max_age=604800,
             httponly=True,
