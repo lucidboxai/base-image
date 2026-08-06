@@ -391,6 +391,13 @@ function init_source_preflight_scripts() {
 function init_write_environment() {
     # Ensure all variables available for interactive sessions
     sed -i '7,$d' /opt/ai-dock/etc/environment.sh
+    # Tightened BEFORE the loop below appends secrets. Default umask leaves this
+    # world-readable, and it holds every variable in the environment in plain
+    # text. Group read is required: services that source it (serviceportal,
+    # syncthing, cloudflared, quicktunnel, storagemonitor) run as $USER_NAME,
+    # which is a member of ai-dock.
+    chown root:ai-dock /opt/ai-dock/etc/environment.sh 2>/dev/null || true
+    chmod 640 /opt/ai-dock/etc/environment.sh
     while IFS='=' read -r -d '' key val; do
         if [[  $key != "HOME" ]]; then
             env-store "$key"
