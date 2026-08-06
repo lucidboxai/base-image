@@ -81,8 +81,7 @@ async def get(request: Request):
         "log_file": args.file,
         "cloud": os.environ.get('CLOUD_PROVIDER')
     }
-    return templates.TemplateResponse("index.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "index.html", {
         "context": context
         }
     )
