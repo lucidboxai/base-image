@@ -65,7 +65,13 @@ function get_url() {
         if [[ -n $runpod_mapped_port && -n $RUNPOD_PUBLIC_IP ]]; then
             url="$(get_scheme)${RUNPOD_PUBLIC_IP}:${runpod_mapped_port}"
         elif [[ -n $RUNPOD_POD_ID ]]; then
-            url="$(get_scheme)${RUNPOD_POD_ID}-${port}.proxy.runpod.net"
+            # Not get_scheme: that reports whether the CONTAINER serves TLS,
+            # but this hostname is served by RunPod's proxy, which terminates
+            # TLS at the edge and is https-only regardless of WEB_ENABLE_HTTPS.
+            # Same reasoning as cfqt-url.sh, which hardcodes https for
+            # trycloudflare hosts. The TCP branch above keeps get_scheme —
+            # those ports are mapped straight through with no edge TLS.
+            url="https://${RUNPOD_POD_ID}-${port}.proxy.runpod.net"
         fi
     # Other cloud / local
     else
