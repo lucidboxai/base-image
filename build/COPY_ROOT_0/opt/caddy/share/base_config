@@ -65,6 +65,14 @@
     # (PORT-020) and cfqt-url.sh, which hardcode https for exactly these hosts.
     # Everything defaults to no flag, so an unrecognised ingress fails open
     # rather than locking the operator out.
+    #
+    # cookie_secure_hint carries the same decision to the Service Portal, which
+    # issues this cookie itself from its login POST. The portal cannot work it
+    # out alone: RunPod rewrites Host to an internal address before the request
+    # reaches this container, and reverse_proxy overwrites X-Forwarded-Proto
+    # with Caddy's own scheme, so by the time the portal sees the request both
+    # signals are gone. Deciding once here and forwarding the answer also means
+    # there is only one copy of this logic.
     @secure_ctx {
         expression \
             {http.request.scheme} == "https" || \
@@ -73,7 +81,9 @@
             {http.request.host}.endsWith(".trycloudflare.com")
     }
     vars cookie_secure ""
+    vars cookie_secure_hint "off"
     vars @secure_ctx cookie_secure "; Secure"
+    vars @secure_ctx cookie_secure_hint "on"
 
     
     @default {

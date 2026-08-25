@@ -42,19 +42,26 @@ async def get(request: Request):
     )
 
 def is_secure_context(request: Request):
-    """Mirror of Caddy's @secure_ctx matcher in /opt/caddy/share/base_config.
+    """Should the session cookie this portal issues carry the Secure flag?
 
-    Keep the two in sync: the portal and Caddy issue the same session cookie,
-    so they must agree on whether it carries Secure or the two paths produce
-    cookies that overwrite each other with different flags.
+    Caddy decides (@secure_ctx in /opt/caddy/share/base_config) and forwards the
+    answer as X-Ai-Dock-Secure. The portal cannot work it out for itself once it
+    is behind the proxy: measured on a RunPod pod, the edge rewrites Host to an
+    internal address (100.65.x.x:port) before the request reaches this
+    container, and Caddy's reverse_proxy overwrites X-Forwarded-Proto with its
+    own scheme — so both signals are gone by the time they arrive here. Caddy
+    still sees the edge's X-Forwarded-Proto: https, which is what its matcher
+    fires on.
 
-    Host is checked because RunPod and trycloudflare terminate TLS at the edge
-    and speak http to this container. X-Forwarded-Proto is not dependable here
-    either — Caddy rewrites it from its own scheme unless the sender is a
-    configured trusted_proxy — but Caddy does preserve Host, so that check is
-    the one that actually fires behind the proxy. Defaults to False, because a
-    wrongly-set Secure flag locks the operator out of the login form.
+    header_up overwrites any client-supplied value, so the hint cannot be
+    spoofed from outside. The direct checks below are the fallback for reaching
+    the portal without Caddy in front, and everything defaults to False —
+    wrongly setting Secure means the cookie is stored but never sent back, i.e.
+    a login loop.
     """
+    hint = request.headers.get('x-ai-dock-secure')
+    if hint is not None:
+        return hint.strip().lower() == 'on'
     host = request.headers.get('host', '').split(':')[0].lower()
     return (
         request.url.scheme == 'https'

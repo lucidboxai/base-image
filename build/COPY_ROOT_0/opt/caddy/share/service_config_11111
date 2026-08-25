@@ -19,7 +19,12 @@
     
     route @login {
         redir @authorized {$SERVICEPORTAL_HOME}
-        reverse_proxy localhost:!LISTEN_PORT
+        # The login POST sets the session cookie in the portal rather than here,
+        # so it needs Caddy's Secure decision. header_up overwrites any
+        # client-supplied value, so this cannot be spoofed from outside.
+        reverse_proxy localhost:!LISTEN_PORT {
+            header_up X-Ai-Dock-Secure {vars.cookie_secure_hint}
+        }
     }
     
     route @preauth {
