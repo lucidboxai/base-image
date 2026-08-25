@@ -1,3 +1,39 @@
+## Modification Notice
+
+**This is a modified version of the original software.**
+
+This repository is a fork of [ai-dock/base-image](https://github.com/ai-dock/base-image),
+authored by Robert Ballantyne, trading as AI-Dock. It has been modified by lucidboxai and is
+**not** the original, unmodified work. Please raise any issue arising from these changes here
+rather than with the upstream project.
+
+This notice is provided in accordance with clause 5 of [LICENSE.md](LICENSE.md).
+
+In summary, the modifications cover:
+
+- Modernization of the base OS and CUDA toolchain (Ubuntu 24.04, CUDA 12.6.3-cudnn-runtime),
+  together with the Ubuntu 24.04 package and user-account changes that entails
+- Dependency policy: floor pins and build-time SHA256 verification of downloaded artifacts
+  in place of hard pins
+- Correctness and hygiene fixes to the bundled service portal, `init.sh` and Caddy
+  configuration — see the `PORT-*` commits
+- CI workflow changes specific to this fork's container registry and build targets — see the
+  `INFRA-*` commits
+
+The complete corresponding source for every modification is public in this repository's git
+history. To review the full diff against the original:
+
+```
+git remote add upstream https://github.com/ai-dock/base-image.git
+git fetch upstream
+git log --patch upstream/main..main
+```
+
+All original copyright, licence and attribution notices are preserved unaltered below and in
+[LICENSE.md](LICENSE.md).
+
+---
+
 ## Notice:
 
 I have chosen to apply a custom license to this software for the following reasons:
