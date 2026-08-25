@@ -53,6 +53,28 @@
     @preauth {
         path /ai-dock/pre-auth
     }
+
+    # Flag the session cookie Secure only when the browser's connection really
+    # is https, so it is not silently dropped on plain-http runs (local
+    # docker-compose, TCP-mapped ports). A wrongly-set Secure flag is a login
+    # loop: the cookie is stored but never sent back.
+    #
+    # The host checks are deliberate: RunPod and trycloudflare terminate TLS at
+    # their edge and speak http to this container, so neither the request scheme
+    # nor X-Forwarded-Proto is reliable there. Same reasoning as direct-url.sh
+    # (PORT-020) and cfqt-url.sh, which hardcode https for exactly these hosts.
+    # Everything defaults to no flag, so an unrecognised ingress fails open
+    # rather than locking the operator out.
+    @secure_ctx {
+        expression \
+            {http.request.scheme} == "https" || \
+            {http.request.header.x-forwarded-proto} == "https" || \
+            {http.request.host}.endsWith(".proxy.runpod.net") || \
+            {http.request.host}.endsWith(".trycloudflare.com")
+    }
+    vars cookie_secure ""
+    vars @secure_ctx cookie_secure "; Secure"
+
     
     @default {
         path /*

@@ -41,6 +41,28 @@ async def get(request: Request):
         }
     )
 
+def is_secure_context(request: Request):
+    """Mirror of Caddy's @secure_ctx matcher in /opt/caddy/share/base_config.
+
+    Keep the two in sync: the portal and Caddy issue the same session cookie,
+    so they must agree on whether it carries Secure or the two paths produce
+    cookies that overwrite each other with different flags.
+
+    Host is checked because RunPod and trycloudflare terminate TLS at the edge
+    and speak http to this container. X-Forwarded-Proto is not dependable here
+    either — Caddy rewrites it from its own scheme unless the sender is a
+    configured trusted_proxy — but Caddy does preserve Host, so that check is
+    the one that actually fires behind the proxy. Defaults to False, because a
+    wrongly-set Secure flag locks the operator out of the login form.
+    """
+    host = request.headers.get('host', '').split(':')[0].lower()
+    return (
+        request.url.scheme == 'https'
+        or request.headers.get('x-forwarded-proto', '').lower() == 'https'
+        or host.endswith('.proxy.runpod.net')
+        or host.endswith('.trycloudflare.com')
+    )
+
 @app.post("/login")
 async def post(request: Request):
     form = await request.form()
@@ -55,7 +77,8 @@ async def post(request: Request):
             path="/",
             max_age=604800,
             httponly=True,
-            samesite="lax"
+            samesite="lax",
+            secure=is_secure_context(request)
         )
     return response
         
