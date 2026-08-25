@@ -3,11 +3,10 @@
 [![PR Build Check](https://github.com/lucidboxai/base-image/actions/workflows/pr-build-check.yml/badge.svg?branch=main)](https://github.com/lucidboxai/base-image/actions/workflows/pr-build-check.yml)
 
 > [!IMPORTANT]
-> **Modified version.** This repository is a fork of
-> [ai-dock/base-image](https://github.com/ai-dock/base-image) by Robert Ballantyne (AI-Dock), modified by
-> lucidboxai. It is not the original, unmodified software — please report issues with these
-> changes here, not upstream. See [NOTICE.md](NOTICE.md) for a summary of the modifications
-> and [LICENSE.md](LICENSE.md) for licence terms.
+> **This is a modified fork.** Based on [ai-dock/base-image](https://github.com/ai-dock/base-image) by Robert
+> Ballantyne (AI-Dock), with changes by lucidboxai. Please report anything broken here rather
+> than upstream. See [NOTICE.md](NOTICE.md) for what differs and [LICENSE.md](LICENSE.md) for
+> licence terms.
 
 Base image for the **lucidboxai ai-dock stack** — a maintained fork of [ai-dock/base-image](https://github.com/ai-dock/base-image) modernized for current cloud GPU services. All lucidboxai images (`lucidboxai/python`, `lucidboxai/comfyui`) extend from this image.
 
